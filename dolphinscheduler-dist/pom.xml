@@ -15,7 +15,8 @@
   ~ See the License for the specific language governing permissions and
   ~ limitations under the License.
   -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>org.apache.dolphinscheduler</groupId>
@@ -87,31 +88,15 @@
                 <artifactId>rpm-maven-plugin</artifactId>
                 <version>2.1.5</version>
                 <extensions>true</extensions>
-                <executions>
-                    <execution>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>rpm</goal>
-                        </goals>
-                    </execution>
-                </executions>
-
                 <configuration>
-                    <!-- 最后打包后的rpm名字为
-                    ${rpm.install.path}-${project.version}-release-noarch.rpm
-                    -->
-                    <!-- 打包后的路径  -->
-                    <prefix></prefix>
 
-                    <!-- 描述信息 -->
-                    <distribution>maven package rpm zk</distribution>
+                    <distribution>maven package rpm ds</distribution>
 
                     <!-- 集团信息 -->
                     <group>${groupId}</group>
 
                     <!-- 打包作者信息(作者|公司名) -->
                     <packager>nanata</packager>
-
                     <!-- npd版本信息  -->
                     <version>3.0</version>
                     <!-- 小版本(可选参数,不填默认为1) -->
@@ -119,18 +104,11 @@
                     <needarch>x86_64</needarch>
                     <!-- 是否自动解决依赖 -->
                     <autoRequires>false</autoRequires>
-
-                    <!-- 依赖其他的rpm包 -->
-                    <!--<requires>
-                        <require>java-1.8.0 >= 1.8</require>
-                    </requires>-->
-
                     <mappings>
-
                         <!-- 将相关文件放入rpm包内 -->
                         <mapping>
                             <!-- 安装rpm时指向的服务器安装目录  -->
-                            <directory>/usr/ndp/3.0/dolphinscheduler/bin</directory>
+                            <directory>/usr/ndp/3.0/dolphinscheduler/bin/</directory>
                             <filemode>777</filemode>
                             <username>dolphin</username>
                             <groupname>dolphin</groupname>
@@ -161,22 +139,26 @@
                                 </source>
                             </sources>
                         </mapping>
-
                         <mapping>
                             <!-- 安装rpm时指向的服务器安装目录  -->
-                            <directory>/usr/ndp/3.0/dolphinscheduler</directory>
+                            <directory>/usr/ndp/3.0/dolphinscheduler/</directory>
                             <filemode>777</filemode>
                             <username>dolphin</username>
                             <groupname>dolphin</groupname>
                             <sources>
                                 <source>
-                                    <location>../dolphinscheduler-worker/target/work-server</location>
+                                    <location>../dolphinscheduler-worker/target/worker-server</location>
                                 </source>
                                 <source>
                                     <location>../dolphinscheduler-tools/target/tools</location>
                                 </source>
                                 <source>
                                     <location>../dolphinscheduler-standalone-server/target/standalone-server</location>
+                                    <excludes>
+                                        <exclude>libs/</exclude>
+                                        <exclude>bin/</exclude>
+                                        <exclude>dist-bin/</exclude>
+                                    </excludes>
                                 </source>
                                 <source>
                                     <location>../dolphinscheduler-master/target/master-server</location>
@@ -200,7 +182,7 @@
                         </mapping>
                         <mapping>
                             <!-- 安装rpm时指向的服务器安装目录  -->
-                            <directory>/usr/ndp/3.0/dolphinscheduler/ui</directory>
+                            <directory>/usr/ndp/3.0/dolphinscheduler/ui/</directory>
                             <filemode>777</filemode>
                             <username>dolphin</username>
                             <groupname>dolphin</groupname>
@@ -212,7 +194,7 @@
                                     <location>../dolphinscheduler-ui/dist/images</location>
                                 </source>
                                 <source>
-                                    <location>.../dolphinscheduler-ui/dist/favicon.ico</location>
+                                    <location>../dolphinscheduler-ui/dist/favicon.ico</location>
                                 </source>
                                 <source>
                                     <location>../dolphinscheduler-ui/dist/index.html</location>
@@ -225,12 +207,16 @@
                                 </source>
                             </sources>
                         </mapping>
-
                     </mappings>
-
-
-
                 </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>rpm</goal>
+                        </goals>
+                        <phase>package</phase>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>

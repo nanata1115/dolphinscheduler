@@ -33,7 +33,7 @@ public interface TaskPriorityQueue<T> {
      * @param taskInfo taskInfo
      * @throws TaskPriorityQueueException
      */
-    void put(T taskInfo);
+    void put(T taskInfo) throws TaskPriorityQueueException;
 
     /**
      * take taskInfo
@@ -42,7 +42,6 @@ public interface TaskPriorityQueue<T> {
      * @throws TaskPriorityQueueException
      */
     T take() throws TaskPriorityQueueException, InterruptedException;
-
 
     /**
      * poll taskInfo with timeout
