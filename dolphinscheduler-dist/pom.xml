@@ -114,28 +114,7 @@
                             <groupname>dolphin</groupname>
                             <sources>
                                 <source>
-                                    <location>../script/env</location>
-                                </source>
-                                <source>
-                                    <location>../script/dolphinscheduler-daemon.sh</location>
-                                </source>
-                                <source>
-                                    <location>../script/install.sh</location>
-                                </source>
-                                <source>
-                                    <location>../script/remove-zk-node.sh</location>
-                                </source>
-                                <source>
-                                    <location>../script/scp-hosts.sh</location>
-                                </source>
-                                <source>
-                                    <location>../script/start-all.sh</location>
-                                </source>
-                                <source>
-                                    <location>../script/status-all.sh</location>
-                                </source>
-                                <source>
-                                    <location>../script/stop-all.sh</location>
+                                    <location>../script</location>
                                 </source>
                             </sources>
                         </mapping>
@@ -146,29 +125,6 @@
                             <username>dolphin</username>
                             <groupname>dolphin</groupname>
                             <sources>
-                                <source>
-                                    <location>../dolphinscheduler-worker/target/worker-server</location>
-                                </source>
-                                <source>
-                                    <location>../dolphinscheduler-tools/target/tools</location>
-                                </source>
-                                <source>
-                                    <location>../dolphinscheduler-standalone-server/target/standalone-server</location>
-                                    <excludes>
-                                        <exclude>libs/</exclude>
-                                        <exclude>bin/</exclude>
-                                        <exclude>dist-bin/</exclude>
-                                    </excludes>
-                                </source>
-                                <source>
-                                    <location>../dolphinscheduler-master/target/master-server</location>
-                                </source>
-                                <source>
-                                    <location>../dolphinscheduler-api/target/api-server</location>
-                                </source>
-                                <source>
-                                    <location>../dolphinscheduler-alert/dolphinscheduler-alert-server/target/alert-server</location>
-                                </source>
                                 <source>
                                     <location>../licenses</location>
                                 </source>
@@ -182,28 +138,73 @@
                         </mapping>
                         <mapping>
                             <!-- 安装rpm时指向的服务器安装目录  -->
+                            <directory>/usr/ndp/3.0/dolphinscheduler/worker-server</directory>
+                            <filemode>777</filemode>
+                            <username>dolphin</username>
+                            <groupname>dolphin</groupname>
+                            <sources>
+                                <source>
+                                    <location>../dolphinscheduler-worker/target/worker-server</location>
+                                </source>
+                            </sources>
+                        </mapping>
+                        <mapping>
+                            <!-- 安装rpm时指向的服务器安装目录  -->
+                            <directory>/usr/ndp/3.0/dolphinscheduler/tools</directory>
+                            <filemode>777</filemode>
+                            <username>dolphin</username>
+                            <groupname>dolphin</groupname>
+                            <sources>
+                                <source>
+                                    <location>../dolphinscheduler-tools/target/tools</location>
+                                </source>
+                            </sources>
+                        </mapping>
+                        <mapping>
+                            <!-- 安装rpm时指向的服务器安装目录  -->
+                            <directory>/usr/ndp/3.0/dolphinscheduler/master-server</directory>
+                            <filemode>777</filemode>
+                            <username>dolphin</username>
+                            <groupname>dolphin</groupname>
+                            <sources>
+                                <source>
+                                    <location>../dolphinscheduler-master/target/master-server</location>
+                                </source>
+                            </sources>
+                        </mapping>
+                        <mapping>
+                            <!-- 安装rpm时指向的服务器安装目录  -->
+                            <directory>/usr/ndp/3.0/dolphinscheduler/api-server</directory>
+                            <filemode>777</filemode>
+                            <username>dolphin</username>
+                            <groupname>dolphin</groupname>
+                            <sources>
+                                <source>
+                                    <location>../dolphinscheduler-api/target/api-server</location>
+                                </source>
+                            </sources>
+                        </mapping>
+                        <mapping>
+                            <!-- 安装rpm时指向的服务器安装目录  -->
+                            <directory>/usr/ndp/3.0/dolphinscheduler/alert-server</directory>
+                            <filemode>777</filemode>
+                            <username>dolphin</username>
+                            <groupname>dolphin</groupname>
+                            <sources>
+                                <source>
+                                    <location>../dolphinscheduler-alert/dolphinscheduler-alert-server/target/alert-server</location>
+                                </source>
+                            </sources>
+                        </mapping>
+                        <mapping>
+                            <!-- 安装rpm时指向的服务器安装目录  -->
                             <directory>/usr/ndp/3.0/dolphinscheduler/ui/</directory>
                             <filemode>777</filemode>
                             <username>dolphin</username>
                             <groupname>dolphin</groupname>
                             <sources>
                                 <source>
-                                    <location>../dolphinscheduler-ui/dist/assets</location>
-                                </source>
-                                <source>
-                                    <location>../dolphinscheduler-ui/dist/images</location>
-                                </source>
-                                <source>
-                                    <location>../dolphinscheduler-ui/dist/favicon.ico</location>
-                                </source>
-                                <source>
-                                    <location>../dolphinscheduler-ui/dist/index.html</location>
-                                </source>
-                                <source>
-                                    <location>../dolphinscheduler-ui/dist/lodash.min.js</location>
-                                </source>
-                                <source>
-                                    <location>../dolphinscheduler-ui/dist/lodash.min.js.gz</location>
+                                    <location>../dolphinscheduler-ui/dist</location>
                                 </source>
                             </sources>
                         </mapping>
