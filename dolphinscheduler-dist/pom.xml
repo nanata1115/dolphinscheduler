@@ -102,6 +102,8 @@
                     <!-- 小版本(可选参数,不填默认为1) -->
                     <!--          <release></release>-->
                     <needarch>x86_64</needarch>
+                    <targetOS>linux</targetOS>
+                    <targetVendor>rh</targetVendor>
                     <!-- 是否自动解决依赖 -->
                     <autoRequires>false</autoRequires>
                     <mappings>
