@@ -376,6 +376,8 @@ CREATE TABLE t_ds_process_definition_log (
   PRIMARY KEY (id)
 ) ;
 
+create UNIQUE index uniq_idx_code_version on t_ds_process_definition_log (code,version);
+
 --
 -- Table structure for table t_ds_task_definition
 --
@@ -971,7 +973,7 @@ INSERT INTO t_ds_queue(queue_name, queue, create_time, update_time)
 VALUES ('default', 'default', '2018-11-29 10:22:33', '2018-11-29 10:22:33');
 
 -- Records of t_ds_queue,default queue name : default
-INSERT INTO t_ds_version(version) VALUES ('3.1.1');
+INSERT INTO t_ds_version(version) VALUES ('3.1.7');
 
 --
 -- Table structure for table t_ds_plugin_define
@@ -1953,11 +1955,11 @@ CREATE TABLE t_ds_cluster(
 );
 
 --
--- Table structure for t_ds_fav
+-- Table structure for t_ds_fav_task
 --
 
-DROP TABLE IF EXISTS t_ds_fav;
-CREATE TABLE t_ds_fav
+DROP TABLE IF EXISTS t_ds_fav_task;
+CREATE TABLE t_ds_fav_task
 (
     id        serial      NOT NULL,
     task_name varchar(64) NOT NULL,

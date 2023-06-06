@@ -4,6 +4,30 @@
 
 #### 以下是Apache DolphinScheduler每个稳定版本的设置说明。
 
+### Versions: 3.1.7
+
+#### Links： [3.1.7 文档](../3.1.7/user_doc/about/introduction.md)
+
+### Versions: 3.1.6
+
+#### Links： [3.1.6 文档](../3.1.6/user_doc/about/introduction.md)
+
+### Versions: 3.1.5
+
+#### Links： [3.1.5 文档](../3.1.5/user_doc/about/introduction.md)
+
+### Versions: 3.1.4
+
+#### Links： [3.1.4 文档](../3.1.4/user_doc/about/introduction.md)
+
+### Versions: 3.1.3
+
+#### Links： [3.1.3 文档](../3.1.3/user_doc/about/introduction.md)
+
+### Versions: 3.1.2
+
+#### Links： [3.1.2 文档](../3.1.2/user_doc/about/introduction.md)
+
 ### Versions: 3.1.1
 
 #### Links： [3.1.1 文档](../3.1.1/user_doc/about/introduction.md)

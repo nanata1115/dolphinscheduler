@@ -237,4 +237,10 @@ public class CronUtilsTest {
         expirationTime = CronUtils.getExpirationTime(startTime, CycleEnum.YEAR);
         Assert.assertEquals("2020-02-07 18:30:00", DateUtils.dateToString(expirationTime));
     }
+
+    @Test
+    public void testValid() {
+        Assert.assertFalse(CronUtils.isValidExpression("0 0 13/0 * * ? *"));
+        Assert.assertTrue(CronUtils.isValidExpression("0 0 13-0 * * ? *"));
+    }
 }

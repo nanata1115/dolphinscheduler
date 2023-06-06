@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { omit, cloneDeep } from 'lodash'
+import { omit } from 'lodash'
 import type {
   INodeData,
   ITaskData,
@@ -23,7 +23,8 @@ import type {
   ISqoopTargetParams,
   ISqoopSourceParams,
   ILocalParam,
-  IDependTask
+  IDependTask,
+  RelationType
 } from './types'
 
 export function formatParams(data: INodeData): {
@@ -199,21 +200,21 @@ export function formatParams(data: INodeData): {
   }
 
   if (data.taskType === 'SEATUNNEL') {
-    taskParams.engine = data.engine
+    taskParams.startupScript = data.startupScript
     taskParams.useCustom = data.useCustom
     taskParams.rawScript = data.rawScript
-    switch (data.engine) {
-      case 'FLINK':
-        taskParams.runMode = data.runMode
-        taskParams.others = data.others
-        break
-      case 'SPARK':
-        taskParams.deployMode = data.deployMode
-        taskParams.master = data.master
-        taskParams.masterUrl = data.masterUrl
-        break
-      default:
-        break
+    if (data.startupScript?.includes("flink")) {
+      taskParams.runMode = data.runMode
+      taskParams.others = data.others
+    }
+    if (data.startupScript?.includes("spark")) {
+      taskParams.deployMode = data.deployMode
+      taskParams.master = data.master
+      taskParams.masterUrl = data.masterUrl
+    }
+    if (data.startupScript === "seatunnel.sh") {
+      taskParams.deployMode = data.deployMode
+      taskParams.others = data.others
     }
   }
 
@@ -261,21 +262,9 @@ export function formatParams(data: INodeData): {
     taskParams.xmx = data.xmx
   }
   if (data.taskType === 'DEPENDENT') {
-    const dependTaskList = cloneDeep(data.dependTaskList)?.map(
-      (taskItem: IDependTask) => {
-        if (taskItem.dependItemList?.length) {
-          taskItem.dependItemList.forEach((dependItem) => {
-            delete dependItem.definitionCodeOptions
-            delete dependItem.depTaskCodeOptions
-            delete dependItem.dateOptions
-          })
-        }
-        return taskItem
-      }
-    )
     taskParams.dependence = {
       relation: data.relation,
-      dependTaskList: dependTaskList
+      dependTaskList: data.dependTaskList
     }
   }
   if (data.taskType === 'DATA_QUALITY') {
@@ -597,9 +586,11 @@ export function formatModel(data: ITaskData) {
   }
 
   if (data.taskParams?.dependence) {
-    params.dependTaskList = data.taskParams?.dependence.dependTaskList || []
-    params.relation = data.taskParams?.dependence.relation
+    const dependence: { relation?: RelationType, dependTaskList?: IDependTask[] } = JSON.parse(JSON.stringify(data.taskParams.dependence))
+    params.dependTaskList = dependence.dependTaskList || []
+    params.relation = dependence.relation
   }
+
   if (data.taskParams?.ruleInputParameter) {
     params.check_type = data.taskParams.ruleInputParameter.check_type
     params.comparison_execute_sql =

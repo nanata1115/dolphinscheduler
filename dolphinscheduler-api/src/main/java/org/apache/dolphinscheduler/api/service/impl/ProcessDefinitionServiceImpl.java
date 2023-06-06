@@ -111,6 +111,7 @@ import org.apache.dolphinscheduler.plugin.task.api.enums.TaskTimeoutStrategy;
 import org.apache.dolphinscheduler.plugin.task.api.model.Property;
 import org.apache.dolphinscheduler.plugin.task.api.parameters.ParametersNode;
 import org.apache.dolphinscheduler.plugin.task.api.parameters.SqlParameters;
+import org.apache.dolphinscheduler.service.cron.CronUtils;
 import org.apache.dolphinscheduler.service.model.TaskNode;
 import org.apache.dolphinscheduler.service.process.ProcessService;
 import org.apache.dolphinscheduler.service.task.TaskPluginManager;
@@ -156,6 +157,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -491,12 +493,15 @@ public class ProcessDefinitionServiceImpl extends BaseServiceImpl implements Pro
                 .stream()
                 .collect(Collectors.toMap(Schedule::getProcessDefinitionCode, Function.identity()));
 
+        Map<Integer, String> userMap = userMapper.selectList(new QueryWrapper<>()).stream()
+                .collect(Collectors.toMap(User::getId, User::getUserName));
+
         for (ProcessDefinition pd : processDefinitions) {
             // todo: use batch query
             ProcessDefinitionLog processDefinitionLog =
                     processDefinitionLogMapper.queryByDefinitionCodeAndVersion(pd.getCode(), pd.getVersion());
-            User user = userMapper.selectById(processDefinitionLog.getOperator());
-            pd.setModifyBy(user.getUserName());
+            pd.setModifyBy(userMap.get(processDefinitionLog.getOperator()));
+            pd.setUserName(userMap.get(pd.getUserId()));
             Schedule schedule = scheduleMap.get(pd.getCode());
             pd.setScheduleReleaseState(schedule == null ? null : schedule.getReleaseState());
         }
@@ -872,6 +877,26 @@ public class ProcessDefinitionServiceImpl extends BaseServiceImpl implements Pro
                         ReleaseState.ONLINE.getDescp(), processDefinition.getCode(), scheduleObj.getId());
                 putMsg(result, Status.SCHEDULE_CRON_STATE_ONLINE, scheduleObj.getId());
                 return result;
+            }
+        }
+        List<ProcessTaskRelation> processTaskRelations = processTaskRelationMapper
+                .queryByProcessCode(project.getCode(), processDefinition.getCode());
+        if (CollectionUtils.isNotEmpty(processTaskRelations)) {
+            Set<Long> taskCodeList = new HashSet<>(processTaskRelations.size() * 2);
+            for (ProcessTaskRelation processTaskRelation : processTaskRelations) {
+                if (processTaskRelation.getPreTaskCode() != 0) {
+                    taskCodeList.add(processTaskRelation.getPreTaskCode());
+                }
+                if (processTaskRelation.getPostTaskCode() != 0) {
+                    taskCodeList.add(processTaskRelation.getPostTaskCode());
+                }
+            }
+            if (CollectionUtils.isNotEmpty(taskCodeList)) {
+                int i = taskDefinitionMapper.deleteByBatchCodes(new ArrayList<>(taskCodeList));
+                if (i != taskCodeList.size()) {
+                    logger.error("Delete task definition error, processDefinitionCode:{}.", code);
+                    throw new ServiceException(Status.DELETE_TASK_DEFINE_BY_CODE_ERROR);
+                }
             }
         }
         int delete = processDefinitionMapper.deleteById(processDefinition.getId());
@@ -1404,6 +1429,7 @@ public class ProcessDefinitionServiceImpl extends BaseServiceImpl implements Pro
         if (null != schedule) {
             ProcessDefinition newProcessDefinition = processDefinitionMapper.queryByCode(processDefinition.getCode());
             schedule.setProcessDefinitionCode(newProcessDefinition.getCode());
+            schedule.setId(null);
             schedule.setUserId(loginUser.getId());
             schedule.setCreateTime(now);
             schedule.setUpdateTime(now);
@@ -2344,8 +2370,8 @@ public class ProcessDefinitionServiceImpl extends BaseServiceImpl implements Pro
             putMsg(result, Status.SCHEDULE_START_TIME_END_TIME_SAME);
             return result;
         }
-        if (!org.quartz.CronExpression.isValidExpression(scheduleObj.getCrontab())) {
-            logger.error("{} verify failure", scheduleObj.getCrontab());
+        if (!CronUtils.isValidExpression(scheduleObj.getCrontab())) {
+            logger.error("CronExpression verify failure, cron:{}.", scheduleObj.getCrontab());
             putMsg(result, Status.REQUEST_PARAMS_NOT_VALID_ERROR, scheduleObj.getCrontab());
             return result;
         }

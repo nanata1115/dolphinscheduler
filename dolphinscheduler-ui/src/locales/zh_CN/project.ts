@@ -200,7 +200,9 @@ export default {
     project_tips: '请选择项目',
     workflow_relation_no_data_result_title: '工作流关系不存在',
     workflow_relation_no_data_result_desc:
-      '目前没有任何工作流，请先创建工作流，再访问该页面'
+      '目前没有任何工作流，请先创建工作流，再访问该页面',
+    ready_to_block: '准备锁定',
+    block: '锁定',
   },
   task: {
     cancel_full_screen: '取消全屏',
@@ -738,6 +740,8 @@ export default {
     custom_config: '自定义配置',
     engine: '引擎',
     engine_tips: '请选择引擎',
+    startup_script: '启动脚本',
+    startup_script_tips: '请选择启动脚本',
     run_mode: '运行模式',
     dinky_address: 'dinky 地址',
     dinky_address_tips: '请输入 Dinky 地址',

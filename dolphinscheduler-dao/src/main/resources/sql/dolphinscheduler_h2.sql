@@ -456,7 +456,8 @@ CREATE TABLE t_ds_process_definition_log
     operate_time     datetime     DEFAULT NULL,
     create_time      datetime NOT NULL,
     update_time      datetime     DEFAULT NULL,
-    PRIMARY KEY (id)
+    PRIMARY KEY (id),
+    UNIQUE KEY uniq_idx_code_version (code, version) USING BTREE
 );
 
 -- ----------------------------
@@ -989,7 +990,7 @@ CREATE TABLE t_ds_version
 -- Records of t_ds_version
 -- ----------------------------
 INSERT INTO t_ds_version
-VALUES ('1', '3.1.1');
+VALUES ('1', '3.1.7');
 
 
 -- ----------------------------
@@ -1997,10 +1998,10 @@ INSERT INTO `t_ds_cluster`
 VALUES (100, 0, 'ds_null_k8s', '{"k8s":"ds_null_k8s"}', 'test', 1, '2021-03-03 11:31:24.0', '2021-03-03 11:31:24.0');
 
 --
--- Table structure for t_ds_fav
+-- Table structure for t_ds_fav_task
 --
-DROP TABLE IF EXISTS t_ds_fav CASCADE;
-CREATE TABLE t_ds_fav
+DROP TABLE IF EXISTS t_ds_fav_task CASCADE;
+CREATE TABLE t_ds_fav_task
 (
     id        bigint(20) NOT NULL AUTO_INCREMENT,
     task_name varchar(64) NOT NULL,

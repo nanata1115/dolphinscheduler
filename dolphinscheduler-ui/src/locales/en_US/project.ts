@@ -200,7 +200,9 @@ export default {
     workflow_relation_no_data_result_title:
       'Can not find any relations of workflows.',
     workflow_relation_no_data_result_desc:
-      'There is not any workflows. Please create a workflow, and then visit this page again.'
+      'There is not any workflows. Please create a workflow, and then visit this page again.',
+    ready_to_block: 'Ready to block',
+    block: 'Block',
   },
   task: {
     cancel_full_screen: 'Cancel full screen',
@@ -757,6 +759,8 @@ export default {
     custom_config: 'Custom Config',
     engine: 'engine',
     engine_tips: 'Please select engine',
+    startup_script: 'Startup script',
+    startup_script_tips: 'Please select startup script',
     run_mode: 'Run Mode',
     dinky_address: 'Dinky address',
     dinky_address_tips: 'Please enter the url of your dinky',

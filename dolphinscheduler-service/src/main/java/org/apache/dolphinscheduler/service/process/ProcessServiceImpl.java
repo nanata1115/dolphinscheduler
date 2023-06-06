@@ -304,7 +304,7 @@ public class ProcessServiceImpl implements ProcessService {
                 processInstance.getProcessDefinitionVersion());
         if (processDefinition.getExecutionType().typeIsSerial()) {
             saveSerialProcess(processInstance, processDefinition);
-            if (processInstance.getState() != WorkflowExecutionStatus.SUBMITTED_SUCCESS) {
+            if (processInstance.getState() != WorkflowExecutionStatus.RUNNING_EXECUTION) {
                 setSubProcessParam(processInstance);
                 deleteCommandWithCheck(command.getId());
                 return null;
@@ -330,7 +330,7 @@ public class ProcessServiceImpl implements ProcessService {
                             org.apache.dolphinscheduler.service.utils.Constants.RUNNING_PROCESS_STATE,
                             processInstance.getId());
             if (CollectionUtils.isEmpty(runningProcessInstances)) {
-                processInstance.setStateWithDesc(WorkflowExecutionStatus.SUBMITTED_SUCCESS,
+                processInstance.setStateWithDesc(WorkflowExecutionStatus.RUNNING_EXECUTION,
                         "submit from serial_wait strategy");
                 processInstanceDao.upsertProcessInstance(processInstance);
             }
@@ -346,7 +346,7 @@ public class ProcessServiceImpl implements ProcessService {
                 processInstanceDao.upsertProcessInstance(processInstance);
                 return;
             }
-            processInstance.setStateWithDesc(WorkflowExecutionStatus.SUBMITTED_SUCCESS,
+            processInstance.setStateWithDesc(WorkflowExecutionStatus.RUNNING_EXECUTION,
                     "submit from serial_discard strategy");
             processInstanceDao.upsertProcessInstance(processInstance);
         } else if (processDefinition.getExecutionType().typeIsSerialPriority()) {
@@ -374,7 +374,7 @@ public class ProcessServiceImpl implements ProcessService {
                     }
                 }
             }
-            processInstance.setStateWithDesc(WorkflowExecutionStatus.SUBMITTED_SUCCESS,
+            processInstance.setStateWithDesc(WorkflowExecutionStatus.RUNNING_EXECUTION,
                     "submit by serial_priority strategy");
             processInstanceDao.upsertProcessInstance(processInstance);
         }
@@ -942,8 +942,9 @@ public class ProcessServiceImpl implements ProcessService {
         }
         if (cmdParam != null) {
             CommandType commandTypeIfComplement = getCommandTypeIfComplement(processInstance, command);
-            // reset global params while repeat running is needed by cmdParam
-            if (commandTypeIfComplement == CommandType.REPEAT_RUNNING) {
+            // reset global params while repeat running and recover tolerance fault process is needed by cmdParam
+            if (commandTypeIfComplement == CommandType.REPEAT_RUNNING ||
+                    commandTypeIfComplement == CommandType.RECOVER_TOLERANCE_FAULT_PROCESS) {
                 setGlobalParamIfCommanded(processDefinition, cmdParam);
             }
 
@@ -1776,9 +1777,7 @@ public class ProcessServiceImpl implements ProcessService {
                         JSONUtils.toJsonString(mainJarObj),
                         ResourceInfo.class);
                 ResourceInfo resourceInfo = updateResourceInfo(mainJar);
-                if (resourceInfo != null) {
-                    taskParameters.put("mainJar", resourceInfo);
-                }
+                taskParameters.put("mainJar", resourceInfo);
             }
             // update resourceList information
             if (taskParameters.containsKey("resourceList")) {
@@ -1814,6 +1813,10 @@ public class ProcessServiceImpl implements ProcessService {
             resourceInfo = new ResourceInfo();
             // get resource from database, only one resource should be returned
             Resource resource = getResourceById(resourceId);
+            if (Objects.isNull(resource)) {
+                logger.error("resource not found, resourceId: {}", resourceId);
+                return null;
+            }
             resourceInfo.setId(resourceId);
             resourceInfo.setRes(resource.getFileName());
             resourceInfo.setResourceName(resource.getFullName());
@@ -2083,8 +2086,7 @@ public class ProcessServiceImpl implements ProcessService {
         cmd.setProcessDefinitionCode(processDefinition.getCode());
         cmd.setProcessDefinitionVersion(processDefinition.getVersion());
         cmd.setProcessInstanceId(processInstance.getId());
-        cmd.setCommandParam(
-                String.format("{\"%s\":%d}", CMD_PARAM_RECOVER_PROCESS_ID_STRING, processInstance.getId()));
+        cmd.setCommandParam(JSONUtils.toJsonString(createCommandParams(processInstance)));
         cmd.setExecutorId(processInstance.getExecutorId());
         cmd.setCommandType(CommandType.RECOVER_TOLERANCE_FAULT_PROCESS);
         cmd.setProcessInstancePriority(processInstance.getProcessInstancePriority());
@@ -2948,7 +2950,12 @@ public class ProcessServiceImpl implements ProcessService {
         // Create a waiting taskGroupQueue, after acquire resource, we can update the status to ACQUIRE_SUCCESS
         TaskGroupQueue taskGroupQueue = this.taskGroupQueueMapper.queryByTaskId(taskId);
         if (taskGroupQueue == null) {
-            taskGroupQueue = insertIntoTaskGroupQueue(taskId, taskName, groupId, processId, priority,
+            taskGroupQueue = insertIntoTaskGroupQueue(
+                    taskId,
+                    taskName,
+                    groupId,
+                    processId,
+                    priority,
                     TaskGroupQueueStatus.WAIT_QUEUE);
         } else {
             logger.info("The task queue is already exist, taskId: {}", taskId);
@@ -2960,7 +2967,9 @@ public class ProcessServiceImpl implements ProcessService {
             this.taskGroupQueueMapper.updateById(taskGroupQueue);
         }
         // check if there already exist higher priority tasks
-        List<TaskGroupQueue> highPriorityTasks = taskGroupQueueMapper.queryHighPriorityTasks(groupId, priority,
+        List<TaskGroupQueue> highPriorityTasks = taskGroupQueueMapper.queryHighPriorityTasks(
+                groupId,
+                priority,
                 TaskGroupQueueStatus.WAIT_QUEUE.getCode());
         if (CollectionUtils.isNotEmpty(highPriorityTasks)) {
             return false;
@@ -2981,20 +2990,27 @@ public class ProcessServiceImpl implements ProcessService {
      */
     @Override
     public boolean robTaskGroupResource(TaskGroupQueue taskGroupQueue) {
-        TaskGroup taskGroup = taskGroupMapper.selectById(taskGroupQueue.getGroupId());
-        int affectedCount = taskGroupMapper.updateTaskGroupResource(taskGroup.getId(),
-                taskGroupQueue.getId(),
-                TaskGroupQueueStatus.WAIT_QUEUE.getCode());
-        if (affectedCount > 0) {
-            logger.info("Success rob taskGroup, taskInstanceId: {}, taskGroupId: {}", taskGroupQueue.getTaskId(),
-                    taskGroupQueue.getId());
-            taskGroupQueue.setStatus(TaskGroupQueueStatus.ACQUIRE_SUCCESS);
-            this.taskGroupQueueMapper.updateById(taskGroupQueue);
-            this.taskGroupQueueMapper.updateInQueue(Flag.NO.getCode(), taskGroupQueue.getId());
-            return true;
+        // set the default max size to avoid dead loop
+        for (int i = 0; i < 10; i++) {
+            TaskGroup taskGroup = taskGroupMapper.selectById(taskGroupQueue.getGroupId());
+            if (taskGroup.getGroupSize() <= taskGroup.getUseSize()) {
+                logger.info("The current task Group is full, taskGroup: {}", taskGroup);
+                return false;
+            }
+            int affectedCount = taskGroupMapper.robTaskGroupResource(taskGroup.getId(),
+                    taskGroup.getUseSize(),
+                    taskGroupQueue.getId(),
+                    TaskGroupQueueStatus.WAIT_QUEUE.getCode());
+            if (affectedCount > 0) {
+                logger.info("Success rob taskGroup, taskInstanceId: {}, taskGroupId: {}", taskGroupQueue.getTaskId(),
+                        taskGroupQueue.getId());
+                taskGroupQueue.setStatus(TaskGroupQueueStatus.ACQUIRE_SUCCESS);
+                this.taskGroupQueueMapper.updateById(taskGroupQueue);
+                this.taskGroupQueueMapper.updateInQueue(Flag.NO.getCode(), taskGroupQueue.getId());
+                return true;
+            }
         }
-        logger.info("Failed to rob taskGroup, taskInstanceId: {}, taskGroupId: {}", taskGroupQueue.getTaskId(),
-                taskGroupQueue.getId());
+        logger.info("Failed to rob taskGroup, taskGroupQueue: {}", taskGroupQueue);
         return false;
     }
 
@@ -3030,6 +3046,10 @@ public class ProcessServiceImpl implements ProcessService {
                     logger.info("The taskGroupQueue's status is release, taskInstanceId: {}", taskInstance.getId());
                     return null;
                 }
+                if (thisTaskGroupQueue.getStatus() == TaskGroupQueueStatus.WAIT_QUEUE) {
+                    logger.info("The taskGroupQueue's status is in waiting, will not need to release task group");
+                    break;
+                }
             } while (thisTaskGroupQueue.getForceStart() == Flag.NO.getCode()
                     && taskGroupMapper.releaseTaskGroupResource(taskGroup.getId(),
                             taskGroup.getUseSize(),
@@ -3056,7 +3076,8 @@ public class ProcessServiceImpl implements ProcessService {
         } while (this.taskGroupQueueMapper.updateInQueueCAS(Flag.NO.getCode(),
                 Flag.YES.getCode(),
                 taskGroupQueue.getId()) != 1);
-        logger.info("Finished to release task group queue: taskGroupId: {}", taskInstance.getTaskGroupId());
+        logger.info("Finished to release task group queue: taskGroupId: {}, taskGroupQueueId: {}",
+                taskInstance.getTaskGroupId(), taskGroupQueue.getId());
         return this.taskInstanceMapper.selectById(taskGroupQueue.getTaskId());
     }
 
@@ -3069,28 +3090,30 @@ public class ProcessServiceImpl implements ProcessService {
     @Override
     public void changeTaskGroupQueueStatus(int taskId, TaskGroupQueueStatus status) {
         TaskGroupQueue taskGroupQueue = taskGroupQueueMapper.queryByTaskId(taskId);
+        taskGroupQueue.setInQueue(Flag.NO.getCode());
         taskGroupQueue.setStatus(status);
         taskGroupQueue.setUpdateTime(new Date(System.currentTimeMillis()));
         taskGroupQueueMapper.updateById(taskGroupQueue);
     }
 
-    /**
-     * insert into task group queue
-     *
-     * @param taskId    task id
-     * @param taskName  task name
-     * @param groupId   group id
-     * @param processId process id
-     * @param priority  priority
-     * @return inserted task group queue
-     */
     @Override
-    public TaskGroupQueue insertIntoTaskGroupQueue(Integer taskId,
-                                                   String taskName, Integer groupId,
-                                                   Integer processId, Integer priority, TaskGroupQueueStatus status) {
-        TaskGroupQueue taskGroupQueue = new TaskGroupQueue(taskId, taskName, groupId, processId, priority, status);
-        taskGroupQueue.setCreateTime(new Date());
-        taskGroupQueue.setUpdateTime(new Date());
+    public TaskGroupQueue insertIntoTaskGroupQueue(Integer taskInstanceId,
+                                                   String taskName,
+                                                   Integer taskGroupId,
+                                                   Integer workflowInstanceId,
+                                                   Integer taskGroupPriority,
+                                                   TaskGroupQueueStatus status) {
+        Date now = new Date();
+        TaskGroupQueue taskGroupQueue = TaskGroupQueue.builder()
+                .taskId(taskInstanceId)
+                .taskName(taskName)
+                .groupId(taskGroupId)
+                .processId(workflowInstanceId)
+                .priority(taskGroupPriority)
+                .status(status)
+                .createTime(now)
+                .updateTime(now)
+                .build();
         taskGroupQueueMapper.insert(taskGroupQueue);
         return taskGroupQueue;
     }
@@ -3117,6 +3140,7 @@ public class ProcessServiceImpl implements ProcessService {
                 processInstance.getId(), taskId);
         Host host = new Host(processInstance.getHost());
         stateEventCallbackService.sendResult(host, taskEventChangeCommand.convert2Command(taskType));
+        logger.info("Success send command to master: {}, command: {}", host, taskEventChangeCommand);
     }
 
     @Override
@@ -3180,5 +3204,16 @@ public class ProcessServiceImpl implements ProcessService {
                 }
             }
         }
+    }
+
+    private Map<String, Object> createCommandParams(ProcessInstance processInstance) {
+        Map<String, Object> commandMap =
+                JSONUtils.parseObject(processInstance.getCommandParam(), new TypeReference<Map<String, Object>>() {
+                });
+        Map<String, Object> recoverFailoverCommandParams = new HashMap<>();
+        Optional.ofNullable(MapUtils.getObject(commandMap, CMD_PARAM_START_PARAMS))
+                .ifPresent(startParams -> recoverFailoverCommandParams.put(CMD_PARAM_START_PARAMS, startParams));
+        recoverFailoverCommandParams.put(CMD_PARAM_RECOVER_PROCESS_ID_STRING, processInstance.getId());
+        return recoverFailoverCommandParams;
     }
 }

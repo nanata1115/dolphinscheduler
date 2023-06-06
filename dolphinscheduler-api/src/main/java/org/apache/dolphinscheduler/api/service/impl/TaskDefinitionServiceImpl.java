@@ -31,6 +31,7 @@ import org.apache.dolphinscheduler.api.service.ProjectService;
 import org.apache.dolphinscheduler.api.service.TaskDefinitionService;
 import org.apache.dolphinscheduler.api.utils.PageInfo;
 import org.apache.dolphinscheduler.api.utils.Result;
+import org.apache.dolphinscheduler.api.vo.TaskDefinitionVo;
 import org.apache.dolphinscheduler.common.constants.Constants;
 import org.apache.dolphinscheduler.common.enums.AuthorizationType;
 import org.apache.dolphinscheduler.common.enums.ConditionType;
@@ -572,9 +573,6 @@ public class TaskDefinitionServiceImpl extends BaseServiceImpl implements TaskDe
         Map<String, Object> result = new HashMap<>();
         TaskDefinitionLog taskDefinitionToUpdate =
                 updateTask(loginUser, projectCode, taskCode, taskDefinitionJsonObj, result);
-        if (result.get(Constants.STATUS) != Status.SUCCESS && taskDefinitionToUpdate == null) {
-            return result;
-        }
         List<ProcessTaskRelation> upstreamTaskRelations =
                 processTaskRelationMapper.queryUpstreamByCode(projectCode, taskCode);
         Set<Long> upstreamCodeSet =
@@ -587,10 +585,6 @@ public class TaskDefinitionServiceImpl extends BaseServiceImpl implements TaskDe
         if (CollectionUtils.isEqualCollection(upstreamCodeSet, upstreamTaskCodes) && taskDefinitionToUpdate == null) {
             putMsg(result, Status.SUCCESS);
             return result;
-        } else {
-            if (taskDefinitionToUpdate == null) {
-                taskDefinitionToUpdate = JSONUtils.parseObject(taskDefinitionJsonObj, TaskDefinitionLog.class);
-            }
         }
         Map<Long, TaskDefinition> queryUpStreamTaskCodeMap;
         if (CollectionUtils.isNotEmpty(upstreamTaskCodes)) {
@@ -784,7 +778,15 @@ public class TaskDefinitionServiceImpl extends BaseServiceImpl implements TaskDe
         if (taskDefinition == null || projectCode != taskDefinition.getProjectCode()) {
             putMsg(result, Status.TASK_DEFINE_NOT_EXIST, String.valueOf(taskCode));
         } else {
-            result.put(Constants.DATA_LIST, taskDefinition);
+            List<ProcessTaskRelation> taskRelationList = processTaskRelationMapper
+                    .queryByCode(projectCode, 0, 0, taskCode);
+            if (CollectionUtils.isNotEmpty(taskRelationList)) {
+                taskRelationList = taskRelationList.stream()
+                        .filter(v -> v.getPreTaskCode() != 0).collect(Collectors.toList());
+            }
+            TaskDefinitionVo taskDefinitionVo = TaskDefinitionVo.fromTaskDefinition(taskDefinition);
+            taskDefinitionVo.setProcessTaskRelationList(taskRelationList);
+            result.put(Constants.DATA_LIST, taskDefinitionVo);
             putMsg(result, Status.SUCCESS);
         }
         return result;

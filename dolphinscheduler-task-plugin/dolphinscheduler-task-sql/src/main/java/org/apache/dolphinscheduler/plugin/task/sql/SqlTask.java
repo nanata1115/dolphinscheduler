@@ -274,7 +274,7 @@ public class SqlTask extends AbstractTask {
             }
         }
         String result = JSONUtils.toJsonString(resultJSONArray);
-        if (sqlParameters.getSendEmail() == null || sqlParameters.getSendEmail()) {
+        if (Boolean.TRUE.equals(sqlParameters.getSendEmail())) {
             sendAttachment(sqlParameters.getGroupId(), StringUtils.isNotEmpty(sqlParameters.getTitle())
                     ? sqlParameters.getTitle()
                     : taskExecutionContext.getTaskName() + " query result sets", result);
@@ -408,7 +408,9 @@ public class SqlTask extends AbstractTask {
     private SqlBinds getSqlAndSqlParamsMap(String sql) {
         Map<Integer, Property> sqlParamsMap = new HashMap<>();
         StringBuilder sqlBuilder = new StringBuilder();
-
+        // new
+        // replace variable TIME with $[YYYYmmddd...] in sql when history run job and batch complement job
+        sql = ParameterUtils.replaceScheduleTime(sql, taskExecutionContext.getScheduleTime());
         // combining local and global parameters
         Map<String, Property> paramsMap = taskExecutionContext.getPrepareParamsMap();
 
@@ -425,9 +427,6 @@ public class SqlTask extends AbstractTask {
             sqlParameters.setTitle(title);
         }
 
-        //new
-        //replace variable TIME with $[YYYYmmddd...] in sql when history run job and batch complement job
-        sql = ParameterUtils.replaceScheduleTime(sql, taskExecutionContext.getScheduleTime());
         // special characters need to be escaped, ${} needs to be escaped
         setSqlParamsMap(sql, rgex, sqlParamsMap, paramsMap,taskExecutionContext.getTaskInstanceId());
         //Replace the original value in sql ！{...} ，Does not participate in precompilation

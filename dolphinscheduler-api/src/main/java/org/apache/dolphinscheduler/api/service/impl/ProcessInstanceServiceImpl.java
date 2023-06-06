@@ -401,11 +401,12 @@ public class ProcessInstanceServiceImpl extends BaseServiceImpl implements Proce
                 }
                 String dependResultString = tmpStringArray[1];
                 String[] dependStringArray = dependResultString.split(",");
-                if (dependStringArray.length != 2) {
+                if (dependStringArray.length != 3) {
                     continue;
                 }
-                String key = dependStringArray[0].trim();
-                DependResult dependResult = DependResult.valueOf(dependStringArray[1].trim());
+                String key = dependStringArray[0].trim().split(":")[1].trim();
+                String result = dependStringArray[1].trim().split(":")[1].trim();
+                DependResult dependResult = DependResult.valueOf(result);
                 resultMap.put(key, dependResult);
             }
         }
@@ -835,7 +836,7 @@ public class ProcessInstanceServiceImpl extends BaseServiceImpl implements Proce
                 task.getEndDate().add(endTime.getTime());
                 task.setIsoStart(startTime);
                 task.setIsoEnd(endTime);
-                task.setStatus(taskInstance.getState().toString());
+                task.setStatus(taskInstance.getState().name());
                 task.setExecutionDate(taskInstance.getStartTime());
                 task.setDuration(DateUtils.format2Readable(endTime.getTime() - startTime.getTime()));
                 taskList.add(task);
