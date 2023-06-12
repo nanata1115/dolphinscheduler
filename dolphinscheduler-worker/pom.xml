@@ -31,6 +31,11 @@
     <dependencyManagement>
         <dependencies>
             <dependency>
+                <groupId>mysql</groupId>
+                <artifactId>mysql-connector-java</artifactId>
+                <version>8.0.11</version>
+            </dependency>
+            <dependency>
                 <groupId>org.apache.dolphinscheduler</groupId>
                 <artifactId>dolphinscheduler-bom</artifactId>
                 <version>${project.version}</version>
