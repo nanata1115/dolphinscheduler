@@ -154,7 +154,7 @@ public class SwitchTaskProcessor extends BaseTaskProcessor {
             try {
                 result = SwitchTaskUtils.evaluate(content);
             } catch (Exception e) {
-                logger.info("error sentence : {}", content);
+                logger.info("error sentence : {}", content, e);
                 conditionResult = DependResult.FAILED;
                 break;
             }

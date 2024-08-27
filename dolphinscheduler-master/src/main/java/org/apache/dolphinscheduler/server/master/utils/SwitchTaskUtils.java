@@ -17,22 +17,20 @@
 
 package org.apache.dolphinscheduler.server.master.utils;
 
-import javax.script.ScriptEngine;
-import javax.script.ScriptEngineManager;
-import javax.script.ScriptException;
+import org.graalvm.polyglot.Context;
+import org.graalvm.polyglot.Value;
 
 public class SwitchTaskUtils {
-    private static ScriptEngineManager manager;
-    private static ScriptEngine engine;
+
+    private static Context context;
 
     static {
-        manager = new ScriptEngineManager();
-        engine = manager.getEngineByName("js");
+        context = Context.create();
     }
 
-    public static boolean evaluate(String expression) throws ScriptException {
-        Object result = engine.eval(expression);
-        return (Boolean) result;
+    public static boolean evaluate(String expression) {
+        Value result = context.eval("js", expression);
+        return result.asBoolean();
     }
 
 }
