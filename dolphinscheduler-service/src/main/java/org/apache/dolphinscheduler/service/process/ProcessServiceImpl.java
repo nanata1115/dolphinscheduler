@@ -663,6 +663,7 @@ public class ProcessServiceImpl implements ProcessService {
                 }
             }
         }
+        throughTaskNodeList.remove(parentCode);
     }
 
     /**
