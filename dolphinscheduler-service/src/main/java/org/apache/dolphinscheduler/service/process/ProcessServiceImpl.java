@@ -279,6 +279,9 @@ public class ProcessServiceImpl implements ProcessService {
     @Autowired
     private LogClient logClient;
 
+    @Autowired
+    private List<Long> throughTaskNodeList;
+
     /**
      * handle Command (construct ProcessInstance from Command) , wrapped in transaction
      *
@@ -644,6 +647,7 @@ public class ProcessServiceImpl implements ProcessService {
     @Override
     public void recurseFindSubProcess(long parentCode, List<Long> ids) {
         List<TaskDefinition> taskNodeList = this.getTaskNodeListByDefinition(parentCode);
+        throughTaskNodeList.add(parentCode);
 
         if (taskNodeList != null && !taskNodeList.isEmpty()) {
 
@@ -653,7 +657,9 @@ public class ProcessServiceImpl implements ProcessService {
                 if (parameterJson.get(CMD_PARAM_SUB_PROCESS_DEFINE_CODE) != null) {
                     SubProcessParameters subProcessParam = JSONUtils.parseObject(parameter, SubProcessParameters.class);
                     ids.add(subProcessParam.getProcessDefinitionCode());
-                    recurseFindSubProcess(subProcessParam.getProcessDefinitionCode(), ids);
+                    if (!throughTaskNodeList.contains(subProcessParam.getProcessDefinitionCode())) {
+                        recurseFindSubProcess(subProcessParam.getProcessDefinitionCode(), ids);
+                    }
                 }
             }
         }
@@ -3052,9 +3058,9 @@ public class ProcessServiceImpl implements ProcessService {
                 }
             } while (thisTaskGroupQueue.getForceStart() == Flag.NO.getCode()
                     && taskGroupMapper.releaseTaskGroupResource(taskGroup.getId(),
-                            taskGroup.getUseSize(),
-                            thisTaskGroupQueue.getId(),
-                            TaskGroupQueueStatus.ACQUIRE_SUCCESS.getCode()) != 1);
+                    taskGroup.getUseSize(),
+                    thisTaskGroupQueue.getId(),
+                    TaskGroupQueueStatus.ACQUIRE_SUCCESS.getCode()) != 1);
         } catch (Exception e) {
             logger.error("release the task group error", e);
             return null;
