@@ -810,7 +810,8 @@ CREATE TABLE t_ds_schedules
     environment_code          bigint(20) DEFAULT '-1',
     create_time               datetime     NOT NULL,
     update_time               datetime     NOT NULL,
-    PRIMARY KEY (id)
+    PRIMARY KEY (id),
+    unique key `process_definition_code_q` (`process_definition_code`)
 );
 
 -- ----------------------------
